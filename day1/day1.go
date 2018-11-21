@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"os"
 )
 
 var conParam string
@@ -29,7 +28,7 @@ func main() {
 
 	flag.Parse()
 
-	argsWithProg := os.Args
+	argsWithProg := flag.Args()
 
 	Sum([]int{1, 2, 3})
 
