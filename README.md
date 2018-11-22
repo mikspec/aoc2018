@@ -2,6 +2,6 @@
 
 ## Table of Contents
 
-- [Day 1](#day_1)
+- [Day 1](#day-1)
 
 ## Day 1
