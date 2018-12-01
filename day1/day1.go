@@ -8,8 +8,10 @@ import (
 	"strconv"
 )
 
-func main() {
-	file, err := os.Open("input.txt")
+// File loading generates array of integers and sum of elements
+func loadFile(name string) (int, []int) {
+
+	file, err := os.Open(name)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -26,10 +28,12 @@ func main() {
 			sum += i
 		}
 	}
+	return sum, inputArray
+}
 
-	fmt.Println("Sum = ", sum)
-
-	sum = 0
+// ProcessArray returns doubled frequency
+func processArray(inputArray []int) int {
+	sum := 0
 	freqdup := make([]int, 0)
 	freqset := make(map[int]bool)
 	freqset[sum] = true
@@ -42,6 +46,13 @@ func main() {
 			freqdup = append(freqdup, sum)
 		}
 	}
+	return freqdup[0]
+}
 
-	fmt.Println("First freq duplicated = ", freqdup[0])
+func main() {
+	sum, inputArray := loadFile("input.txt")
+	fmt.Println("Sum = ", sum)
+
+	freq := processArray(inputArray)
+	fmt.Println("First freq duplicated = ", freq)
 }
