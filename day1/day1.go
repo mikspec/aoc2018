@@ -1,36 +1,47 @@
 package main
 
 import (
-	"flag"
+	"bufio"
 	"fmt"
+	"log"
+	"os"
+	"strconv"
 )
 
-var conParam string
-
-func init() {
-	const (
-		usage = "String to be parsed"
-	)
-	flag.StringVar(&conParam, "c", "", usage)
-}
-
-// Sum adds integers
-func Sum(arr []int) int {
+func main() {
+	file, err := os.Open("input.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
 
 	sum := 0
-	for _, a := range arr {
-		sum += a
+	inputArray := make([]int, 0)
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+
+		if i, err := strconv.Atoi(scanner.Text()); err == nil {
+			inputArray = append(inputArray, i)
+			sum += i
+		}
 	}
-	return sum
-}
 
-func main() {
+	fmt.Println("Sum = ", sum)
 
-	flag.Parse()
+	sum = 0
+	freqdup := make([]int, 0)
+	freqset := make(map[int]bool)
+	freqset[sum] = true
 
-	argsWithProg := flag.Args()
+	for i := 0; len(freqdup) == 0; i++ {
+		sum += inputArray[i%len(inputArray)]
+		if _, found := freqset[sum]; found == false {
+			freqset[sum] = true
+		} else {
+			freqdup = append(freqdup, sum)
+		}
+	}
 
-	Sum([]int{1, 2, 3})
-
-	fmt.Printf("Day 1: %s\n%s\n", argsWithProg, conParam)
+	fmt.Println("First freq duplicated = ", freqdup[0])
 }
