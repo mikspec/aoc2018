@@ -34,19 +34,17 @@ func loadFile(name string) (int, []int) {
 // ProcessArray returns doubled frequency
 func processArray(inputArray []int) int {
 	sum := 0
-	freqdup := make([]int, 0)
 	freqset := make(map[int]bool)
 	freqset[sum] = true
 
-	for i := 0; len(freqdup) == 0; i++ {
+	for i := 0; ; i++ {
 		sum += inputArray[i%len(inputArray)]
 		if _, found := freqset[sum]; found == false {
 			freqset[sum] = true
 		} else {
-			freqdup = append(freqdup, sum)
+			return sum
 		}
 	}
-	return freqdup[0]
 }
 
 func main() {

@@ -6,22 +6,22 @@ import (
 )
 
 func TestProcessArray(t *testing.T) {
-	var v int
-	v = processArray([]int{+1, -1})
-	if v != 0 {
-		t.Error("Expected 0, got ", v)
+
+	var tests = []struct {
+		n        []int // input
+		expected int   // expected result
+	}{
+		{[]int{+1, -1}, 0},
+		{[]int{+3, +3, +4, -2, -4}, 10},
+		{[]int{-6, +3, +8, +5, -6}, 5},
+		{[]int{+7, +7, -2, -7, -4}, 14},
 	}
-	v = processArray([]int{+3, +3, +4, -2, -4})
-	if v != 10 {
-		t.Error("Expected 10, got ", v)
-	}
-	v = processArray([]int{-6, +3, +8, +5, -6})
-	if v != 5 {
-		t.Error("Expected 5, got ", v)
-	}
-	v = processArray([]int{+7, +7, -2, -7, -4})
-	if v != 14 {
-		t.Error("Expected 14, got ", v)
+
+	for _, tt := range tests {
+		actual := processArray(tt.n)
+		if actual != tt.expected {
+			t.Errorf("Input(%d): expected %d, actual %d", tt.n, tt.expected, actual)
+		}
 	}
 }
 func TestLoadFile(t *testing.T) {
