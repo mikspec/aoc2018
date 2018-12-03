@@ -9,4 +9,3 @@ Advent of code 2018 puzzles developed in golang
 - [Day 3](https://adventofcode.com/2018/day/3)
 
 
-
