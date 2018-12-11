@@ -14,3 +14,4 @@ Advent of code 2018 puzzles developed in golang
 - [Day 8](https://adventofcode.com/2018/day/8)
 - [Day 9](https://adventofcode.com/2018/day/9)
 - [Day 10](https://adventofcode.com/2018/day/10)
+- [Day 11](https://adventofcode.com/2018/day/11)
