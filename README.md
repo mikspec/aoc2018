@@ -20,3 +20,6 @@ Advent of code 2018 puzzles developed in golang
 - [Day 14](https://adventofcode.com/2018/day/14)
 - [Day 15](https://adventofcode.com/2018/day/15)
 - [Day 16](https://adventofcode.com/2018/day/16)
+- 
+- [Day 18](https://adventofcode.com/2018/day/18)
+- [Day 19](https://adventofcode.com/2018/day/19)
