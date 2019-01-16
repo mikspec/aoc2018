@@ -279,5 +279,5 @@ func main() {
 	fmt.Println("Immune", sumImmune, "Infection", sumInfection)
 	boost := 0
 	sumImmune, sumInfection, boost = part2("input.txt")
-	fmt.Println("Boost", boost)
+	fmt.Println("Boost", boost, "Immune units", sumImmune)
 }
