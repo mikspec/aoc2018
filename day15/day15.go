@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 )
 
 type objectEnum int
@@ -19,8 +20,11 @@ const (
 
 const (
 	initialPower = 200
-	attackPower  = 3
+	attackPowerG = 3
 )
+
+var attackPowerE = 3
+var dirs = []struct{ dirX, dirY int }{{0, -1}, {-1, 0}, {1, 0}, {0, 1}}
 
 type objectMap map[int]*objectType
 
@@ -34,6 +38,24 @@ type objectType struct {
 }
 
 type battleFieldType [][]*objectType
+type graphType struct {
+	dist int
+	posX int
+	posY int
+	prev *graphType
+}
+
+type graphSort []*graphType
+
+func (s graphSort) Len() int {
+	return len(s)
+}
+func (s graphSort) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
+}
+func (s graphSort) Less(i, j int) bool {
+	return s[i].dist < s[j].dist || s[i].dist == s[j].dist && s[i].posY < s[j].posY || s[i].dist == s[j].dist && s[i].posY == s[j].posY && s[i].posX < s[j].posX
+}
 
 // File loading generates road plan
 func loadFile(name string) (battleField battleFieldType, goblins objectMap, elves objectMap) {
@@ -74,15 +96,9 @@ func loadFile(name string) (battleField battleFieldType, goblins objectMap, elve
 	return
 }
 
-func displayBattleField(battleField *battleFieldType, goblins *objectMap, elves *objectMap) {
-	for _, v := range *goblins {
-		fmt.Print(v.power, " ")
-	}
-	fmt.Println("")
-	for _, v := range *elves {
-		fmt.Print(v.power, " ")
-	}
-	fmt.Println("")
+// Battle image
+func displayBattleField(battleID int, battleField *battleFieldType, goblins *objectMap, elves *objectMap) {
+	fmt.Println("Step", battleID)
 	for y := range *battleField {
 		for x := range (*battleField)[y] {
 			object := "    "
@@ -104,205 +120,185 @@ func displayBattleField(battleField *battleFieldType, goblins *objectMap, elves 
 	}
 }
 
-func populateDistance(posX, posY, distance int, battleField *[][]int) {
-	if posX > 0 && (*battleField)[posY][posX-1] > distance {
-		(*battleField)[posY][posX-1] = distance
-		populateDistance(posX-1, posY, distance+1, battleField)
+// Adjacent points check
+func addPointsToReach(posX, posY int, battleField *battleFieldType, dist int, prev *graphType, object *objectType) []*graphType {
+	posList := make([]*graphType, 0)
+	for _, v := range dirs {
+		newX := posX + v.dirX
+		newY := posY + v.dirY
+		if newX >= len((*battleField)[posY]) || newX < 0 {
+			continue
+		}
+		if newY >= len(*battleField) || newY < 0 {
+			continue
+		}
+		if (*battleField)[newY][newX] != nil {
+			if prev != nil {
+				continue
+			}
+			if !(prev == nil && newX == object.posX && newY == object.posY) {
+				continue
+			}
+		}
+		posList = append(posList, &graphType{dist, newX, newY, prev})
 	}
-	if posX < len((*battleField)[posY])-1 && (*battleField)[posY][posX+1] > distance {
-		(*battleField)[posY][posX+1] = distance
-		populateDistance(posX+1, posY, distance+1, battleField)
-	}
-	if posY > 0 && (*battleField)[posY-1][posX] > distance {
-		(*battleField)[posY-1][posX] = distance
-		populateDistance(posX, posY-1, distance+1, battleField)
-	}
-	if posY < len(*battleField)-1 && (*battleField)[posY+1][posX] > distance {
-		(*battleField)[posY+1][posX] = distance
-		populateDistance(posX, posY+1, distance+1, battleField)
-	}
+	return posList
 }
 
+// BFS search for shortest distance
+func populateDistance(object *objectType, battleField *battleFieldType, maxDistance int) [][]*graphType {
+	distMatrix := make([][]*graphType, len(*battleField))
+	for y := range *battleField {
+		row := make([]*graphType, len((*battleField)[y]))
+		for x := range row {
+			row[x] = &graphType{maxDistance, x, y, nil}
+		}
+		distMatrix[y] = row
+	}
+	start := graphType{0, object.posX, object.posY, nil}
+	distMatrix[object.posY][object.posX] = &start
+	distQueue := make([]*graphType, 0)
+	distQueue = append(distQueue, &start)
+	for len(distQueue) > 0 {
+		v := distQueue[0]
+		distQueue = distQueue[1:]
+		posList := addPointsToReach(v.posX, v.posY, battleField, v.dist+1, v, object)
+		for i := range posList {
+			if distMatrix[posList[i].posY][posList[i].posX].dist == maxDistance {
+				distMatrix[posList[i].posY][posList[i].posX] = posList[i]
+				distQueue = append(distQueue, posList[i])
+			}
+		}
+	}
+	return distMatrix
+}
+
+// Find min distance and enemy to attack is distance == 0
 func minDistance(object *objectType, battleField *battleFieldType, enemies *objectMap, maxDistance int) (minDistance int, minEnemy *objectType, dirX, dirY int) {
 	dirX, dirY = 0, 0
 	minEnemy = nil
-	minPower := initialPower
-	battleTmp := make([][]int, len(*battleField))
-	for y := range *battleField {
-		battleTmp[y] = make([]int, len((*battleField)[y]))
-		for x := range (*battleField)[y] {
-			if (*battleField)[y][x] != nil && !(x == object.posX && y == object.posY) {
-				battleTmp[y][x] = -1
-			} else {
-				battleTmp[y][x] = maxDistance
-			}
-		}
+	minDistance = maxDistance
+	graph := make([]*graphType, 0)
+	for _, v := range *enemies {
+		graph = append(graph, addPointsToReach(v.posX, v.posY, battleField, maxDistance, nil, object)...)
 	}
-	for _, enemy := range *enemies {
-		battleTmp[enemy.posY][enemy.posX] = 0
-		populateDistance(enemy.posX, enemy.posY, 1, &battleTmp)
+	distMatrix := populateDistance(object, battleField, maxDistance)
+	for i := range graph {
+		graph[i] = distMatrix[graph[i].posY][graph[i].posX]
 	}
-	minDistance = battleTmp[object.posY][object.posX]
-	if minDistance == 1 {
-		if object.posY < len(battleTmp)-1 && battleTmp[object.posY+1][object.posX] == 0 {
-			minEnemy = (*battleField)[object.posY+1][object.posX]
-			minPower = minEnemy.power
-		}
-		if object.posX < len(battleTmp[object.posY])-1 && battleTmp[object.posY][object.posX+1] == 0 {
-			enemy := (*battleField)[object.posY][object.posX+1]
-			if enemy.power <= minPower {
-				minEnemy = enemy
-				minPower = enemy.power
-			}
-		}
-		if object.posX > 0 && battleTmp[object.posY][object.posX-1] == 0 {
-			enemy := (*battleField)[object.posY][object.posX-1]
-			if enemy.power <= minPower {
-				minEnemy = enemy
-				minPower = enemy.power
-			}
-		}
-		if object.posY > 0 && battleTmp[object.posY-1][object.posX] == 0 {
-			enemy := (*battleField)[object.posY-1][object.posX]
-			if enemy.power <= minPower {
-				minEnemy = enemy
-				minPower = enemy.power
-			}
-		}
+
+	if len(graph) == 0 {
 		return
 	}
-	for y := range *battleField {
-		for x := range (*battleField)[y] {
-			if (*battleField)[y][x] != nil {
-				battleTmp[y][x] = -1
-			} else {
-				battleTmp[y][x] = maxDistance
-			}
-		}
+	sort.Sort(graphSort(graph))
+	aim := graph[0]
+	if aim.dist == maxDistance {
+		return
 	}
-	battleTmp[object.posY][object.posX] = 0
-	populateDistance(object.posX, object.posY, 1, &battleTmp)
-	y, x := 0, 0
-	distance := minDistance - 1
-	enemyType := objectEnum(ELF)
-	if object.objectTyp == ELF {
-		enemyType = objectEnum(GOBLIN)
-	}
-loopBattle:
-	for y = range battleTmp {
-		for x = range battleTmp[y] {
-			if battleTmp[y][x] == distance {
-				if y < len(battleTmp)-1 && (*battleField)[y+1][x] != nil && (*battleField)[y+1][x].objectTyp == enemyType {
-					break loopBattle
-				} else if x < len(battleTmp[y])-1 && (*battleField)[y][x+1] != nil && (*battleField)[y][x+1].objectTyp == enemyType {
-					break loopBattle
-				} else if x > 0 && (*battleField)[y][x-1] != nil && (*battleField)[y][x-1].objectTyp == enemyType {
-					break loopBattle
-				} else if y > 0 && (*battleField)[y-1][x] != nil && (*battleField)[y-1][x].objectTyp == enemyType {
-					break loopBattle
+	minDistance = aim.dist
+	if aim.dist == 0 {
+		for _, v := range dirs {
+			enemy := (*battleField)[aim.posY+v.dirY][aim.posX+v.dirX]
+			if enemy != nil && enemy.objectTyp != WALL && enemy.objectTyp != object.objectTyp {
+				if minEnemy == nil || enemy.power < minEnemy.power {
+					minEnemy = enemy
+					dirX = enemy.posX - object.posX
+					dirY = enemy.posY - object.posY
 				}
 			}
 		}
-	}
-	for {
-		if distance == 1 {
-			break
+	} else {
+		prev := aim
+		for v := aim; v.prev != nil; v = v.prev {
+			prev = v
 		}
-		if y < len(battleTmp)-1 && battleTmp[y+1][x] == distance-1 {
-			y++
-		} else if x < len(battleTmp[y])-1 && battleTmp[y][x+1] == distance-1 {
-			x++
-		} else if x > 0 && battleTmp[y][x-1] == distance-1 {
-			x--
-		} else if y > 0 && battleTmp[y-1][x] == distance-1 {
-			y--
-		}
-		distance--
+		dirX = prev.posX - prev.prev.posX
+		dirY = prev.posY - prev.prev.posY
 	}
-	dirX = x - object.posX
-	dirY = y - object.posY
 	return
 }
 
+// Can object move
 func canMove(object *objectType, battleField *battleFieldType, goblins *objectMap, elves *objectMap) (moveFlg bool, dirX, dirY int) {
-	maxDistance := len(*battleField) + len((*battleField)[0]) + 2
 	minDist := -1
+	maxDistance := len(*battleField) * len((*battleField)[0])
 	enemies := goblins
 	if object.objectTyp == GOBLIN {
 		enemies = elves
 	}
 	minDist, _, dirX, dirY = minDistance(object, battleField, enemies, maxDistance)
-	return (minDist < maxDistance) && (minDist > 1), dirX, dirY
+	return minDist < maxDistance && minDist > 0, dirX, dirY
 }
 
+// Can object attack
 func canAttack(object *objectType, battleField *battleFieldType, goblins *objectMap, elves *objectMap) (attackFlg bool, enemy *objectType) {
-	maxDistance := len(*battleField) + len((*battleField)[0]) + 2
 	minDist := -1
+	maxDistance := len(*battleField) * len((*battleField)[0])
 	enemies := goblins
 	enemy = nil
 	if object.objectTyp == GOBLIN {
 		enemies = elves
 	}
 	minDist, enemy, _, _ = minDistance(object, battleField, enemies, maxDistance)
-	return minDist == 1, enemy
+	return minDist == 0, enemy
 }
 
-func battleTick(battleID int, battleField *battleFieldType, goblins *objectMap, elves *objectMap) (endBattle, fullBattle bool) {
+// Attack procedure
+func attack(enemy *objectType, battleField *battleFieldType, goblins *objectMap, elves *objectMap) {
+	if enemy.objectTyp == GOBLIN {
+		enemy.power -= attackPowerE
+	} else {
+		enemy.power -= attackPowerG
+	}
+	if enemy.power <= 0 {
+		(*battleField)[enemy.posY][enemy.posX] = nil
+		if enemy.objectTyp == GOBLIN {
+			delete(*goblins, enemy.objectID)
+		} else {
+			delete(*elves, enemy.objectID)
+		}
+	}
+}
+
+// One round of battle
+func battleTick(battleID int, battleField *battleFieldType, goblins *objectMap, elves *objectMap) (endBattle bool) {
 	for y := range *battleField {
 		for x := range (*battleField)[y] {
-			if len(*goblins) == 0 || len(*elves) == 0 {
-				return true, false
-			}
 			object := (*battleField)[y][x]
 			if object != nil && object.objectTyp != WALL {
-				moveFlg, dirX, dirY := canMove(object, battleField, goblins, elves)
-				if moveFlg && object.moveCnt != battleID {
+				if object.moveCnt == battleID {
+					continue
+				}
+				if attackFlg, enemy := canAttack(object, battleField, goblins, elves); attackFlg {
+					attack(enemy, battleField, goblins, elves)
+				} else if moveFlg, dirX, dirY := canMove(object, battleField, goblins, elves); moveFlg {
 					(*battleField)[y+dirY][x+dirX] = object
 					(*battleField)[y][x] = nil
 					object.posX += dirX
 					object.posY += dirY
-				}
-				attackFlg, enemy := canAttack(object, battleField, goblins, elves)
-				if attackFlg && object.moveCnt != battleID {
-					enemy.power -= attackPower
-					if enemy.power <= 0 {
-						(*battleField)[enemy.posY][enemy.posX] = nil
-						if enemy.objectTyp == GOBLIN {
-							delete(*goblins, enemy.objectID)
-						} else {
-							delete(*elves, enemy.objectID)
-						}
+					if attackFlg, enemy = canAttack(object, battleField, goblins, elves); attackFlg {
+						attack(enemy, battleField, goblins, elves)
+					}
+				} else {
+					if len(*goblins) == 0 || len(*elves) == 0 {
+						return true
 					}
 				}
 				object.moveCnt = battleID
 			}
 		}
 	}
-	return false, false
+	return false
 }
 
-func sumObjects(battleField *battleFieldType) (sumGoblins, sumElves int) {
-	for y := range *battleField {
-		for x := range (*battleField)[y] {
-			if (*battleField)[y][x] != nil && (*battleField)[y][x].objectTyp != WALL {
-				if (*battleField)[y][x].objectTyp == GOBLIN {
-					sumGoblins++
-				}
-				if (*battleField)[y][x].objectTyp == ELF {
-					sumElves++
-				}
-			}
-		}
-	}
-	return
-}
-
+// Battle simulation
 func battle(battleField *battleFieldType, goblins *objectMap, elves *objectMap) (battleResult, battleID int) {
 	battleID = 0
 	battleResult = 0
+	//displayBattleField(battleID, battleField, goblins, elves)
 	for {
 		battleID++
-		if endBattle, fullBattle := battleTick(battleID, battleField, goblins, elves); endBattle {
+		if endBattle := battleTick(battleID, battleField, goblins, elves); endBattle {
 			sum := 0
 			for _, v := range *goblins {
 				sum += v.power
@@ -310,16 +306,31 @@ func battle(battleField *battleFieldType, goblins *objectMap, elves *objectMap) 
 			for _, v := range *elves {
 				sum += v.power
 			}
-			if !fullBattle {
-				battleID--
-			}
+			battleID--
 			return sum * battleID, battleID
+		}
+		//displayBattleField(battleID, battleField, goblins, elves)
+	}
+}
+
+// Battle simulation with growing elves power attack value
+func part2(file string) (int, int, int) {
+	for attackPowerE = 4; ; attackPowerE++ {
+		battleField, goblins, elves := loadFile(file)
+		preElvesCnt := len(elves)
+		result, battleID := battle(&battleField, &goblins, &elves)
+		if preElvesCnt == len(elves) {
+			return result, battleID, attackPowerE
 		}
 	}
 }
 
 func main() {
-	battleField, goblins, elves := loadFile("input.txt")
+	file := "input.txt"
+	battleField, goblins, elves := loadFile(file)
 	result, battleID := battle(&battleField, &goblins, &elves)
 	fmt.Println("Battle result ", result, battleID)
+	attackPowerE = 3
+	result, battleID, attackPowerE = part2(file)
+	fmt.Println("Battle 2 result ", result, battleID, attackPowerE)
 }
