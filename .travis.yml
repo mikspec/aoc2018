@@ -12,5 +12,6 @@ addons:
     organization: "mikspec-github" # the key of the org you chose at step #3
       
 script:
+  - go test -coverprofile=coverage.out ./...
   - $HOME/gopath/bin/goveralls -v -service=travis-ci
   - sonar-scanner
