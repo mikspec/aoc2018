@@ -1,3 +1,4 @@
+dist: trusty
 language: go
 
 go:
@@ -5,6 +6,11 @@ go:
   
 before_install:
   - go get github.com/mattn/goveralls
-  
+
+addons:
+  sonarcloud:
+    organization: "mikspec-github" # the key of the org you chose at step #3
+      
 script:
   - $HOME/gopath/bin/goveralls -v -service=travis-ci
+  - sonar-scanner
