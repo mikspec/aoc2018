@@ -169,7 +169,7 @@ func addColumn(caveDepth, targetX, targetY int, cavePlan cavePlanType) cavePlanT
 }
 
 // Create new item if not exists or update distance
-func createGraphItem(x, y, tool, dist int, pq *priorityQueue, graphMap *graphMapType, head *graphItemType, cavePlan *cavePlanType) {
+func createGraphItem(x, y, tool, dist int, pq *priorityQueue, graphMap *graphMapType, head *graphItemType) {
 	key := graphItemKeyType{x, y, tool}
 	if item, ok := (*graphMap)[key]; !ok {
 		item = &graphItemType{&key, dist, -1, head, false}
@@ -203,11 +203,11 @@ func findRescuePathLength(caveDepth, targetX, targetY int, cavePlan cavePlanType
 		}
 		// Left
 		if head.x > 0 && cavePlan[head.y][head.x-1].erosion != head.tool {
-			createGraphItem(head.x-1, head.y, head.tool, head.dist+1, &pq, &graphMap, head, &cavePlan)
+			createGraphItem(head.x-1, head.y, head.tool, head.dist+1, &pq, &graphMap, head)
 		}
 		// Up
 		if head.y > 0 && cavePlan[head.y-1][head.x].erosion != head.tool {
-			createGraphItem(head.x, head.y-1, head.tool, head.dist+1, &pq, &graphMap, head, &cavePlan)
+			createGraphItem(head.x, head.y-1, head.tool, head.dist+1, &pq, &graphMap, head)
 		}
 		// Generate additional cave plan if required
 		if head.x == len(cavePlan[head.y])-1 {
@@ -218,18 +218,18 @@ func findRescuePathLength(caveDepth, targetX, targetY int, cavePlan cavePlanType
 		}
 		// Right
 		if cavePlan[head.y][head.x+1].erosion != head.tool {
-			createGraphItem(head.x+1, head.y, head.tool, head.dist+1, &pq, &graphMap, head, &cavePlan)
+			createGraphItem(head.x+1, head.y, head.tool, head.dist+1, &pq, &graphMap, head)
 		}
 		// Down
 		if cavePlan[head.y+1][head.x].erosion != head.tool {
-			createGraphItem(head.x, head.y+1, head.tool, head.dist+1, &pq, &graphMap, head, &cavePlan)
+			createGraphItem(head.x, head.y+1, head.tool, head.dist+1, &pq, &graphMap, head)
 		}
 		// Change the tool operation is also one of options
 		newTool := (head.tool + 1) % 3
 		if newTool == cavePlan[head.y][head.x].erosion {
 			newTool = (newTool + 1) % 3
 		}
-		createGraphItem(head.x, head.y, newTool, head.dist+7, &pq, &graphMap, head, &cavePlan)
+		createGraphItem(head.x, head.y, newTool, head.dist+7, &pq, &graphMap, head)
 	}
 	return -1, cavePlan
 }

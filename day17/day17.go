@@ -110,13 +110,13 @@ func simulation(area areaType, waterSourceX, waterSourceY, minX, maxY int) (code
 
 // Mark water on rest
 func markWaterOnRest(area areaType, posX, posY int) {
-	for i := posX; posX >= 0; i-- {
+	for i := posX; i >= 0; i-- {
 		if area[posY][i] == '#' {
 			break
 		}
 		area[posY][i] = '~'
 	}
-	for i := posX; posX < len(area[posY]); i++ {
+	for i := posX; i < len(area[posY]); i++ {
 		if area[posY][i] == '#' {
 			break
 		}

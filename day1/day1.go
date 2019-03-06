@@ -39,7 +39,7 @@ func processArray(inputArray []int) int {
 
 	for i := 0; ; i++ {
 		sum += inputArray[i%len(inputArray)]
-		if _, found := freqset[sum]; found == false {
+		if _, found := freqset[sum]; !found {
 			freqset[sum] = true
 		} else {
 			return sum

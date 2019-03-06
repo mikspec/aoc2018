@@ -97,7 +97,7 @@ func loadFile(name string) (battleField battleFieldType, goblins objectMap, elve
 }
 
 // Battle image
-func displayBattleField(battleID int, battleField *battleFieldType, goblins *objectMap, elves *objectMap) {
+func displayBattleField(battleID int, battleField *battleFieldType) {
 	fmt.Println("Step", battleID)
 	for y := range *battleField {
 		for x := range (*battleField)[y] {
@@ -199,12 +199,10 @@ func minDistance(object *objectType, battleField *battleFieldType, enemies *obje
 	if aim.dist == 0 {
 		for _, v := range dirs {
 			enemy := (*battleField)[aim.posY+v.dirY][aim.posX+v.dirX]
-			if enemy != nil && enemy.objectTyp != WALL && enemy.objectTyp != object.objectTyp {
-				if minEnemy == nil || enemy.power < minEnemy.power {
-					minEnemy = enemy
-					dirX = enemy.posX - object.posX
-					dirY = enemy.posY - object.posY
-				}
+			if enemy != nil && enemy.objectTyp != WALL && enemy.objectTyp != object.objectTyp && (minEnemy == nil || enemy.power < minEnemy.power) {
+				minEnemy = enemy
+				dirX = enemy.posX - object.posX
+				dirY = enemy.posY - object.posY
 			}
 		}
 	} else {
@@ -295,7 +293,6 @@ func battleTick(battleID int, battleField *battleFieldType, goblins *objectMap, 
 func battle(battleField *battleFieldType, goblins *objectMap, elves *objectMap) (battleResult, battleID int) {
 	battleID = 0
 	battleResult = 0
-	//displayBattleField(battleID, battleField, goblins, elves)
 	for {
 		battleID++
 		if endBattle := battleTick(battleID, battleField, goblins, elves); endBattle {
@@ -309,7 +306,6 @@ func battle(battleField *battleFieldType, goblins *objectMap, elves *objectMap) 
 			battleID--
 			return sum * battleID, battleID
 		}
-		//displayBattleField(battleID, battleField, goblins, elves)
 	}
 }
 

@@ -11,4 +11,7 @@ func TestDay10(t *testing.T) {
 	fmt.Println(minSize, minSizeCnt)
 	inputArray = loadFile("test1.txt")
 	drawPicture(minSizeCnt, inputArray)
+	if minSize != 63 {
+		t.Error("Min size got", minSize, "expected 63")
+	}
 }

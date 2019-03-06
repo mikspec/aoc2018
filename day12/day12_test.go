@@ -18,7 +18,7 @@ func TestDay12(t *testing.T) {
 func TestDecodeRule(t *testing.T) {
 	ruleStr := []string{"..#.# => #", "..#.#", "#"}
 	key, val := decodeRule(ruleStr)
-	if key != 5 || val != true {
+	if key != 5 || !val {
 		t.Error("Expected key 5 , val true , got key", key, ", val", val)
 	}
 }
